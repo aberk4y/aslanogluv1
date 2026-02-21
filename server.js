@@ -137,6 +137,23 @@ app.post("/api/login", async (req, res) => {
   res.json({ token });
 });
 
+app.post("/api/change-password", authMiddleware, async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+
+    const admin = await Admin.findOne();
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    admin.password = hashedPassword;
+    await admin.save();
+
+    res.json({ success: true, message: "Şifre değiştirildi" });
+  } catch (err) {
+    res.status(500).json({ message: "Hata oluştu" });
+  }
+});
+
+
 /* ---------------- SERVER START ---------------- */
 
 app.listen(PORT, () => {
