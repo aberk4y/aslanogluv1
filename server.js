@@ -11,11 +11,7 @@ const Admin = require("./models/Admin");
 app.use(express.json());
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://yappy-chiarra-altinv2-2dcd9f44.koyeb.app"
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: true,
     credentials: true
   })
 );
