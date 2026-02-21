@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const axios = require("axios");
 const mongoose = require("mongoose");
 require("dotenv").config();
@@ -8,6 +9,16 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const Admin = require("./models/Admin");
 app.use(express.json());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://yappy-chiarra-altinv2-2dcd9f44.koyeb.app"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
+  })
+);
 
 const PORT = process.env.PORT || 5000;
 
