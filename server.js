@@ -37,9 +37,7 @@ mongoose.connection.once("open", async () => {
     await Margin.create({ type: "percent", value: 1 });
     console.log("🎯 Varsayılan %1 global marj oluşturuldu");
   }
-});
 
-mongoose.connection.once("open", async () => {
   const existingAdmin = await Admin.findOne();
   if (!existingAdmin) {
     const hashedPassword = await bcrypt.hash("123456", 10);
@@ -63,7 +61,7 @@ const authMiddleware = (req, res, next) => {
   try {
     jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ message: "Token geçersiz" });
   }
 };
@@ -73,7 +71,6 @@ const authMiddleware = (req, res, next) => {
 function parsePrice(value) {
   if (!value) return 0;
 
-  // 7.486,74 → 7486.74
   return parseFloat(
     value.toString().replace(/\./g, "").replace(",", ".")
   );
@@ -110,6 +107,7 @@ app.get("/api/prices", async (req, res) => {
 
       /* -------- ÜRÜNE ÖZEL MARJ -------- */
       if (productMargin) {
+
         // BUY
         if (productMargin.buy_type === "percent") {
           finalBuy =
@@ -125,10 +123,12 @@ app.get("/api/prices", async (req, res) => {
         } else {
           finalSell = sellPrice + productMargin.sell_value;
         }
+
       }
 
-      /* -------- GLOBAL FALLBACK (SADECE SELL) -------- */
+      /* -------- GLOBAL FALLBACK (SELL ONLY) -------- */
       else if (globalMargin) {
+
         if (globalMargin.type === "percent") {
           finalSell =
             sellPrice + (sellPrice * globalMargin.value) / 100;
@@ -148,6 +148,7 @@ app.get("/api/prices", async (req, res) => {
       success: true,
       data: updatedData,
     });
+
   } catch (error) {
     console.error("API HATA:", error.message);
     res.status(500).json({ error: "Fiyatlar alınamadı" });
@@ -160,9 +161,14 @@ app.post("/api/margin", authMiddleware, async (req, res) => {
   try {
     const { type, value } = req.body;
 
+    if (value === undefined)
+      return res.status(400).json({ error: "Value gerekli" });
+
     const margin = await Margin.findOne();
+
     margin.type = type;
-    margin.value = value;
+    margin.value = Number(value);
+
     await margin.save();
 
     res.json({
@@ -170,7 +176,7 @@ app.post("/api/margin", authMiddleware, async (req, res) => {
       message: "Global marj güncellendi",
       margin,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Marj güncellenemedi" });
   }
 });
@@ -187,21 +193,24 @@ app.post("/api/product-margin", authMiddleware, async (req, res) => {
       sell_value,
     } = req.body;
 
+    if (!product)
+      return res.status(400).json({ error: "Ürün adı gerekli" });
+
     let existing = await ProductMargin.findOne({ product });
 
     if (existing) {
       existing.buy_type = buy_type;
-      existing.buy_value = buy_value;
+      existing.buy_value = Number(buy_value || 0);
       existing.sell_type = sell_type;
-      existing.sell_value = sell_value;
+      existing.sell_value = Number(sell_value || 0);
       await existing.save();
     } else {
       await ProductMargin.create({
         product,
         buy_type,
-        buy_value,
+        buy_value: Number(buy_value || 0),
         sell_type,
-        sell_value,
+        sell_value: Number(sell_value || 0),
       });
     }
 
@@ -209,7 +218,8 @@ app.post("/api/product-margin", authMiddleware, async (req, res) => {
       success: true,
       message: "Ürün marjı güncellendi",
     });
-  } catch (error) {
+
+  } catch {
     res.status(500).json({ error: "Ürün marjı güncellenemedi" });
   }
 });
