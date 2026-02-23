@@ -224,6 +224,16 @@ app.post("/api/product-margin", authMiddleware, async (req, res) => {
   }
 });
 
+
+app.get("/api/product-margin", authMiddleware, async (req, res) => {
+  try {
+    const margins = await ProductMargin.find();
+    res.json(margins);
+  } catch (error) {
+    res.status(500).json({ error: "Ürün marjları alınamadı" });
+  }
+});
+
 /* ---------------- LOGIN ---------------- */
 
 app.post("/api/login", async (req, res) => {
