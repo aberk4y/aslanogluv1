@@ -227,10 +227,40 @@ app.post("/api/product-margin", authMiddleware, async (req, res) => {
 
 app.get("/api/product-margin", authMiddleware, async (req, res) => {
   try {
-    const margins = await ProductMargin.find();
-    res.json(margins);
+    // RapidAPI’den ürünleri çek
+    const response = await axios.get(
+      "https://harem-altin-live-gold-price-data.p.rapidapi.com/harem_altin/prices/23b4c2fb31a242d1eebc0df9b9b65e5e",
+      {
+        headers: {
+          "X-RapidAPI-Key": process.env.RAPID_API_KEY,
+          "X-RapidAPI-Host":
+            "harem-altin-live-gold-price-data.p.rapidapi.com",
+        },
+      }
+    );
+
+    const apiProducts = response.data.data;
+    const dbMargins = await ProductMargin.find();
+
+    // API ürünlerini Mongo ile eşleştir
+    const merged = apiProducts.map((item) => {
+      const existing = dbMargins.find(
+        (m) => m.product === item.key
+      );
+
+      return {
+        product: item.key,
+        buy_type: existing?.buy_type || "tl",
+        buy_value: existing?.buy_value || 0,
+        sell_type: existing?.sell_type || "tl",
+        sell_value: existing?.sell_value || 0,
+      };
+    });
+
+    res.json(merged);
   } catch (error) {
-    res.status(500).json({ error: "Ürün marjları alınamadı" });
+    console.error("GET PRODUCT MARGIN ERROR:", error.message);
+    res.status(500).json({ error: "Ürünler alınamadı" });
   }
 });
 
