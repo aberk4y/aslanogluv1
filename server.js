@@ -3,16 +3,22 @@ const cors = require("cors");
 const axios = require("axios");
 const mongoose = require("mongoose");
 require("dotenv").config();
+
 const Margin = require("./models/Margin");
-const app = express();
+const ProductMargin = require("./models/ProductMargin");
+const Admin = require("./models/Admin");
+
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const Admin = require("./models/Admin");
+
+const app = express();
+
 app.use(express.json());
+
 app.use(
   cors({
     origin: true,
-    credentials: true
+    credentials: true,
   })
 );
 
@@ -25,32 +31,30 @@ mongoose
   .then(() => console.log("✅ MongoDB bağlandı"))
   .catch((err) => console.log("❌ MongoDB hata:", err));
 
-  mongoose.connection.once("open", async () => {
+mongoose.connection.once("open", async () => {
   const existing = await Margin.findOne();
   if (!existing) {
     await Margin.create({ type: "percent", value: 1 });
-    console.log("🎯 Varsayılan %1 marj oluşturuldu");
+    console.log("🎯 Varsayılan %1 global marj oluşturuldu");
   }
 });
 
 mongoose.connection.once("open", async () => {
   const existingAdmin = await Admin.findOne();
-
   if (!existingAdmin) {
     const hashedPassword = await bcrypt.hash("123456", 10);
-
     await Admin.create({
       username: "admin",
       password: hashedPassword,
     });
-
     console.log("🔐 Varsayılan admin oluşturuldu (admin / 123456)");
   }
 });
 
+/* ---------------- AUTH ---------------- */
+
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
-
   if (!authHeader)
     return res.status(401).json({ message: "Token yok" });
 
@@ -64,7 +68,18 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-/* ---------------- RAPID API ROUTE ---------------- */
+/* ---------------- HELPER ---------------- */
+
+function parsePrice(value) {
+  if (!value) return 0;
+
+  // 7.486,74 → 7486.74
+  return parseFloat(
+    value.toString().replace(/\./g, "").replace(",", ".")
+  );
+}
+
+/* ---------------- PRICES API ---------------- */
 
 app.get("/api/prices", async (req, res) => {
   try {
@@ -79,37 +94,67 @@ app.get("/api/prices", async (req, res) => {
       }
     );
 
-    const margin = await Margin.findOne();
+    const globalMargin = await Margin.findOne();
+    const productMargins = await ProductMargin.find();
 
-const updatedData = response.data.data.map((item) => {
-  const sellPrice = parseFloat(
-    item.sell.replace(/\./g, "").replace(",", ".")
-  );
+    const updatedData = response.data.data.map((item) => {
+      const buyPrice = parsePrice(item.buy);
+      const sellPrice = parsePrice(item.sell);
 
-  let newSell;
+      const productMargin = productMargins.find(
+        (m) => m.product === item.key
+      );
 
-  if (margin.type === "percent") {
-    newSell = sellPrice + (sellPrice * margin.value) / 100;
-  } else {
-    newSell = sellPrice + margin.value;
-  }
+      let finalBuy = buyPrice;
+      let finalSell = sellPrice;
 
-  return {
-    ...item,
-    sell_with_margin: newSell.toFixed(2),
-  };
-});
+      /* -------- ÜRÜNE ÖZEL MARJ -------- */
+      if (productMargin) {
+        // BUY
+        if (productMargin.buy_type === "percent") {
+          finalBuy =
+            buyPrice + (buyPrice * productMargin.buy_value) / 100;
+        } else {
+          finalBuy = buyPrice + productMargin.buy_value;
+        }
 
-res.json({
-  success: true,
-  data: updatedData,
-});
+        // SELL
+        if (productMargin.sell_type === "percent") {
+          finalSell =
+            sellPrice + (sellPrice * productMargin.sell_value) / 100;
+        } else {
+          finalSell = sellPrice + productMargin.sell_value;
+        }
+      }
+
+      /* -------- GLOBAL FALLBACK (SADECE SELL) -------- */
+      else if (globalMargin) {
+        if (globalMargin.type === "percent") {
+          finalSell =
+            sellPrice + (sellPrice * globalMargin.value) / 100;
+        } else {
+          finalSell = sellPrice + globalMargin.value;
+        }
+      }
+
+      return {
+        ...item,
+        buy_with_margin: finalBuy.toFixed(2),
+        sell_with_margin: finalSell.toFixed(2),
+      };
+    });
+
+    res.json({
+      success: true,
+      data: updatedData,
+    });
   } catch (error) {
     console.error("API HATA:", error.message);
     res.status(500).json({ error: "Fiyatlar alınamadı" });
   }
 });
 
+/* ---------------- GLOBAL MARGIN ---------------- */
 
 app.post("/api/margin", authMiddleware, async (req, res) => {
   try {
@@ -120,20 +165,67 @@ app.post("/api/margin", authMiddleware, async (req, res) => {
     margin.value = value;
     await margin.save();
 
-    res.json({ success: true, message: "Marj güncellendi", margin });
+    res.json({
+      success: true,
+      message: "Global marj güncellendi",
+      margin,
+    });
   } catch (error) {
     res.status(500).json({ error: "Marj güncellenemedi" });
   }
 });
 
+/* ---------------- PRODUCT MARGIN ---------------- */
+
+app.post("/api/product-margin", authMiddleware, async (req, res) => {
+  try {
+    const {
+      product,
+      buy_type,
+      buy_value,
+      sell_type,
+      sell_value,
+    } = req.body;
+
+    let existing = await ProductMargin.findOne({ product });
+
+    if (existing) {
+      existing.buy_type = buy_type;
+      existing.buy_value = buy_value;
+      existing.sell_type = sell_type;
+      existing.sell_value = sell_value;
+      await existing.save();
+    } else {
+      await ProductMargin.create({
+        product,
+        buy_type,
+        buy_value,
+        sell_type,
+        sell_value,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Ürün marjı güncellendi",
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Ürün marjı güncellenemedi" });
+  }
+});
+
+/* ---------------- LOGIN ---------------- */
+
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
 
   const admin = await Admin.findOne({ username });
-  if (!admin) return res.status(400).json({ message: "Kullanıcı bulunamadı" });
+  if (!admin)
+    return res.status(400).json({ message: "Kullanıcı bulunamadı" });
 
   const isMatch = await bcrypt.compare(password, admin.password);
-  if (!isMatch) return res.status(400).json({ message: "Şifre yanlış" });
+  if (!isMatch)
+    return res.status(400).json({ message: "Şifre yanlış" });
 
   const token = jwt.sign(
     { id: admin._id },
@@ -143,9 +235,6 @@ app.post("/api/login", async (req, res) => {
 
   res.json({ token });
 });
-
-
-
 
 /* ---------------- SERVER START ---------------- */
 
