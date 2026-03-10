@@ -304,25 +304,25 @@ app.get("/api/currency", async (req, res) => {
       }
     );
 
-    const data = response.data.data;
+    const rawData = response.data;
 
-    const currencies = [
-      {
-        code: "USD",
-        buy: data.USD.buying,
-        sell: data.USD.selling
-      },
-      {
-        code: "EUR",
-        buy: data.EUR.buying,
-        sell: data.EUR.selling
-      },
-      {
-        code: "GBP",
-        buy: data.GBP.buying,
-        sell: data.GBP.selling
-      }
-    ];
+    const currencies = [];
+
+    if (rawData.data) {
+
+      Object.keys(rawData.data).forEach((key) => {
+
+        const item = rawData.data[key];
+
+        currencies.push({
+          code: key,
+          buy: item.buying,
+          sell: item.selling
+        });
+
+      });
+
+    }
 
     res.json({
       success: true,
@@ -334,7 +334,7 @@ app.get("/api/currency", async (req, res) => {
     console.log("CURRENCY ERROR:", error.response?.data || error.message);
 
     res.status(500).json({
-     error: error.response?.data || error.message
+      error: error.response?.data || error.message
     });
 
   }
