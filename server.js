@@ -295,17 +295,12 @@ app.get("/api/currency", async (req, res) => {
   try {
 
     const response = await axios.get(
-      "https://doviz-ve-altin-fiyatlari-try.p.rapidapi.com/economy/currency/exchange-rate",
+      "https://doviz-ve-altin-fiyatlari-try.p.rapidapi.com/economy/currency/exchange-rate?code=USD,EUR,GBP&type=gold",
       {
-        params: {
-          code: "USD,EUR,GBP",
-          type: "gold"
-        },
         headers: {
           "X-RapidAPI-Key": process.env.RAPID_API_KEY,
-          "X-RapidAPI-Host":
-            "doviz-ve-altin-fiyatlari-try.p.rapidapi.com",
-        },
+          "X-RapidAPI-Host": "doviz-ve-altin-fiyatlari-try.p.rapidapi.com"
+        }
       }
     );
 
@@ -336,7 +331,7 @@ app.get("/api/currency", async (req, res) => {
 
   } catch (error) {
 
-    console.error("CURRENCY API ERROR:", error.message);
+    console.log("CURRENCY ERROR:", error.response?.data || error.message);
 
     res.status(500).json({
       error: "Döviz fiyatları alınamadı"
@@ -344,6 +339,8 @@ app.get("/api/currency", async (req, res) => {
 
   }
 });
+
+
 /* ---------------- LOGIN ---------------- */
 
 app.post("/api/login", async (req, res) => {
