@@ -13,6 +13,9 @@ const bcrypt = require("bcryptjs");
 
 const app = express();
 
+let currencyCache = null;
+let lastCurrencyUpdate = null;
+
 app.use(express.json());
 
 app.use(
@@ -94,7 +97,6 @@ app.get("/api/prices", async (req, res) => {
     const globalMargin = await Margin.findOne();
     const productMargins = await ProductMargin.find();
 
-
     const allowedProducts = [
       "Has Altın",
       "GRAM ALTIN",
@@ -115,7 +117,7 @@ app.get("/api/prices", async (req, res) => {
     ];
 
     const filteredProducts = response.data.data.filter(item =>
-     allowedProducts.includes(item.key)
+      allowedProducts.includes(item.key)
     );
 
     const updatedData = filteredProducts.map((item) => {
@@ -129,10 +131,8 @@ app.get("/api/prices", async (req, res) => {
       let finalBuy = buyPrice;
       let finalSell = sellPrice;
 
-      /* -------- ÜRÜNE ÖZEL MARJ -------- */
       if (productMargin) {
 
-        // BUY
         if (productMargin.buy_type === "percent") {
           finalBuy =
             buyPrice + (buyPrice * productMargin.buy_value) / 100;
@@ -140,7 +140,6 @@ app.get("/api/prices", async (req, res) => {
           finalBuy = buyPrice + productMargin.buy_value;
         }
 
-        // SELL
         if (productMargin.sell_type === "percent") {
           finalSell =
             sellPrice + (sellPrice * productMargin.sell_value) / 100;
@@ -148,10 +147,7 @@ app.get("/api/prices", async (req, res) => {
           finalSell = sellPrice + productMargin.sell_value;
         }
 
-      }
-
-      /* -------- GLOBAL FALLBACK (SELL ONLY) -------- */
-      else if (globalMargin) {
+      } else if (globalMargin) {
 
         if (globalMargin.type === "percent") {
           finalSell =
@@ -209,6 +205,7 @@ app.post("/api/margin", authMiddleware, async (req, res) => {
 
 app.post("/api/product-margin", authMiddleware, async (req, res) => {
   try {
+
     const {
       product,
       buy_type,
@@ -223,12 +220,16 @@ app.post("/api/product-margin", authMiddleware, async (req, res) => {
     let existing = await ProductMargin.findOne({ product });
 
     if (existing) {
+
       existing.buy_type = buy_type;
       existing.buy_value = Number(buy_value || 0);
       existing.sell_type = sell_type;
       existing.sell_value = Number(sell_value || 0);
+
       await existing.save();
+
     } else {
+
       await ProductMargin.create({
         product,
         buy_type,
@@ -236,6 +237,7 @@ app.post("/api/product-margin", authMiddleware, async (req, res) => {
         sell_type,
         sell_value: Number(sell_value || 0),
       });
+
     }
 
     res.json({
@@ -244,14 +246,16 @@ app.post("/api/product-margin", authMiddleware, async (req, res) => {
     });
 
   } catch {
+
     res.status(500).json({ error: "Ürün marjı güncellenemedi" });
+
   }
 });
 
 
 app.get("/api/product-margin", authMiddleware, async (req, res) => {
   try {
-    // RapidAPI’den ürünleri çek
+
     const response = await axios.get(
       "https://harem-altin-live-gold-price-data.p.rapidapi.com/harem_altin/prices/23b4c2fb31a242d1eebc0df9b9b65e5e",
       {
@@ -266,8 +270,8 @@ app.get("/api/product-margin", authMiddleware, async (req, res) => {
     const apiProducts = response.data.data;
     const dbMargins = await ProductMargin.find();
 
-    // API ürünlerini Mongo ile eşleştir
     const merged = apiProducts.map((item) => {
+
       const existing = dbMargins.find(
         (m) => m.product === item.key
       );
@@ -279,19 +283,24 @@ app.get("/api/product-margin", authMiddleware, async (req, res) => {
         sell_type: existing?.sell_type || "tl",
         sell_value: existing?.sell_value || 0,
       };
+
     });
 
     res.json(merged);
+
   } catch (error) {
+
     console.error("GET PRODUCT MARGIN ERROR:", error.message);
     res.status(500).json({ error: "Ürünler alınamadı" });
+
   }
 });
 
 
-/* ---------------- CURRENCY API ---------------- */
+/* ---------------- CURRENCY UPDATE FUNCTION ---------------- */
 
-app.get("/api/currency", async (req, res) => {
+async function updateCurrencyRates() {
+
   try {
 
     const response = await axios.get(
@@ -311,7 +320,7 @@ app.get("/api/currency", async (req, res) => {
     const eur = 1 / quotes.TRYEUR;
     const gbp = 1 / quotes.TRYGBP;
 
-    const currencies = [
+    currencyCache = [
       {
         code: "USD",
         buy: (usd - 0.02).toFixed(4),
@@ -329,10 +338,9 @@ app.get("/api/currency", async (req, res) => {
       }
     ];
 
-    res.json({
-      success: true,
-      data: currencies
-    });
+    lastCurrencyUpdate = new Date();
+
+    console.log("💱 Currency cache updated");
 
   } catch (error) {
 
@@ -341,24 +349,43 @@ app.get("/api/currency", async (req, res) => {
       error.response?.data || error.message
     );
 
-    res.status(500).json({
-      error: "Döviz fiyatları alınamadı"
-    });
-
   }
+
+}
+
+/* ---------------- CURRENCY API ---------------- */
+
+app.get("/api/currency", async (req, res) => {
+
+  if (!currencyCache) {
+    return res.json({
+      success: true,
+      data: []
+    });
+  }
+
+  res.json({
+    success: true,
+    last_update: lastCurrencyUpdate,
+    data: currencyCache
+  });
+
 });
 
 
 /* ---------------- LOGIN ---------------- */
 
 app.post("/api/login", async (req, res) => {
+
   const { username, password } = req.body;
 
   const admin = await Admin.findOne({ username });
+
   if (!admin)
     return res.status(400).json({ message: "Kullanıcı bulunamadı" });
 
   const isMatch = await bcrypt.compare(password, admin.password);
+
   if (!isMatch)
     return res.status(400).json({ message: "Şifre yanlış" });
 
@@ -369,10 +396,18 @@ app.post("/api/login", async (req, res) => {
   );
 
   res.json({ token });
+
 });
+
 
 /* ---------------- SERVER START ---------------- */
 
 app.listen(PORT, () => {
+
   console.log(`🚀 Server çalışıyor: http://localhost:${PORT}`);
+
+  updateCurrencyRates();
+
+  setInterval(updateCurrencyRates, 8 * 60 * 60 * 1000);
+
 });
