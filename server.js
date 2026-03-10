@@ -295,33 +295,36 @@ app.get("/api/currency", async (req, res) => {
   try {
 
     const response = await axios.get(
-      "https://api.exchangerate.host/latest",
+      "https://api.exchangerate.host/live",
       {
         params: {
           access_key: process.env.EXCHANGE_API_KEY,
-          base: "TRY",
-          symbols: "USD,EUR,GBP"
+          currencies: "TRY,EUR,GBP"
         }
       }
     );
 
-    const rates = response.data.rates;
+    const quotes = response.data.quotes;
+
+    const usdTry = quotes.USDTRY;
+    const eurTry = quotes.USDEUR * usdTry;
+    const gbpTry = quotes.USDGBP * usdTry;
 
     const currencies = [
       {
         code: "USD",
-        buy: (1 / rates.USD - 0.02).toFixed(4),
-        sell: (1 / rates.USD + 0.02).toFixed(4)
+        buy: (usdTry - 0.05).toFixed(4),
+        sell: (usdTry + 0.05).toFixed(4)
       },
       {
         code: "EUR",
-        buy: (1 / rates.EUR - 0.02).toFixed(4),
-        sell: (1 / rates.EUR + 0.02).toFixed(4)
+        buy: (eurTry - 0.05).toFixed(4),
+        sell: (eurTry + 0.05).toFixed(4)
       },
       {
         code: "GBP",
-        buy: (1 / rates.GBP - 0.02).toFixed(4),
-        sell: (1 / rates.GBP + 0.02).toFixed(4)
+        buy: (gbpTry - 0.05).toFixed(4),
+        sell: (gbpTry + 0.05).toFixed(4)
       }
     ];
 
