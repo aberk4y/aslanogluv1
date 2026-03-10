@@ -94,7 +94,31 @@ app.get("/api/prices", async (req, res) => {
     const globalMargin = await Margin.findOne();
     const productMargins = await ProductMargin.find();
 
-    const updatedData = response.data.data.map((item) => {
+
+    const allowedProducts = [
+      "Has Altın",
+      "GRAM ALTIN",
+      "ESKİ ÇEYREK",
+      "ESKİ TAM",
+      "ESKİ YARIM",
+      "ESKİ ATA",
+      "ESKİ ATA5",
+      "ESKİ GREMSE",
+      "14 AYAR",
+      "22 AYAR",
+      "YENİ ÇEYREK",
+      "YENİ YARIM",
+      "YENİ TAM",
+      "YENİ ATA",
+      "YENİ ATA5",
+      "YENİ GREMSE"
+    ];
+
+    const filteredProducts = response.data.data.filter(item =>
+     allowedProducts.includes(item.key)
+    );
+
+    const updatedData = filteredProducts.map((item) => {
       const buyPrice = parsePrice(item.buy);
       const sellPrice = parsePrice(item.sell);
 
