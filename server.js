@@ -334,7 +334,7 @@ app.get("/api/currency", async (req, res) => {
     console.log("CURRENCY ERROR:", error.response?.data || error.message);
 
     res.status(500).json({
-      error: "Döviz fiyatları alınamadı"
+     error: error.response?.data || error.message
     });
 
   }
