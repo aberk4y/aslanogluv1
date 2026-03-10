@@ -295,36 +295,26 @@ app.get("/api/currency", async (req, res) => {
   try {
 
     const response = await axios.get(
-      "https://api.exchangerate.host/live",
-      {
-        params: {
-          access_key: process.env.EXCHANGE_API_KEY,
-          currencies: "TRY,EUR,GBP"
-        }
-      }
+      "https://api.exchangerate.host/latest?base=TRY&symbols=USD,EUR,GBP"
     );
 
-    const quotes = response.data.quotes;
-
-    const usdTry = quotes.USDTRY;
-    const eurTry = quotes.USDEUR * usdTry;
-    const gbpTry = quotes.USDGBP * usdTry;
+    const rates = response.data.rates;
 
     const currencies = [
       {
         code: "USD",
-        buy: (usdTry - 0.05).toFixed(4),
-        sell: (usdTry + 0.05).toFixed(4)
+        buy: (1 / rates.USD - 0.02).toFixed(4),
+        sell: (1 / rates.USD + 0.02).toFixed(4)
       },
       {
         code: "EUR",
-        buy: (eurTry - 0.05).toFixed(4),
-        sell: (eurTry + 0.05).toFixed(4)
+        buy: (1 / rates.EUR - 0.02).toFixed(4),
+        sell: (1 / rates.EUR + 0.02).toFixed(4)
       },
       {
         code: "GBP",
-        buy: (gbpTry - 0.05).toFixed(4),
-        sell: (gbpTry + 0.05).toFixed(4)
+        buy: (1 / rates.GBP - 0.02).toFixed(4),
+        sell: (1 / rates.GBP + 0.02).toFixed(4)
       }
     ];
 
@@ -335,7 +325,7 @@ app.get("/api/currency", async (req, res) => {
 
   } catch (error) {
 
-    console.log("Currency error:", error.response?.data || error.message);
+    console.log("Currency API ERROR:", error.message);
 
     res.status(500).json({
       error: "Döviz fiyatları alınamadı"
