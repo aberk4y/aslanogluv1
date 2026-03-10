@@ -295,34 +295,34 @@ app.get("/api/currency", async (req, res) => {
   try {
 
     const response = await axios.get(
-      "https://doviz-ve-altin-fiyatlari-try.p.rapidapi.com/economy/currency/exchange-rate?code=USD,EUR,GBP&type=gold",
+      "https://live-exchange-rates-api-try-based-forex-pairs.p.rapidapi.com/harem_altin/prices/doviz/ebc099879744f4aa3e02ff6762874055",
       {
         headers: {
           "X-RapidAPI-Key": process.env.RAPID_API_KEY,
-          "X-RapidAPI-Host": "doviz-ve-altin-fiyatlari-try.p.rapidapi.com"
+          "X-RapidAPI-Host": "live-exchange-rates-api-try-based-forex-pairs.p.rapidapi.com"
         }
       }
     );
 
-    const rawData = response.data;
+    const data = response.data.data;
 
-    const currencies = [];
-
-    if (rawData.data) {
-
-      Object.keys(rawData.data).forEach((key) => {
-
-        const item = rawData.data[key];
-
-        currencies.push({
-          code: key,
-          buy: item.buying,
-          sell: item.selling
-        });
-
-      });
-
-    }
+    const currencies = [
+      {
+        code: "USD",
+        buy: data.USD.buy,
+        sell: data.USD.sell
+      },
+      {
+        code: "EUR",
+        buy: data.EUR.buy,
+        sell: data.EUR.sell
+      },
+      {
+        code: "GBP",
+        buy: data.GBP.buy,
+        sell: data.GBP.sell
+      }
+    ];
 
     res.json({
       success: true,
@@ -334,7 +334,7 @@ app.get("/api/currency", async (req, res) => {
     console.log("CURRENCY ERROR:", error.response?.data || error.message);
 
     res.status(500).json({
-      error: error.response?.data || error.message
+      error: "Döviz fiyatları alınamadı"
     });
 
   }
