@@ -288,6 +288,62 @@ app.get("/api/product-margin", authMiddleware, async (req, res) => {
   }
 });
 
+
+/* ---------------- CURRENCY API ---------------- */
+
+app.get("/api/currency", async (req, res) => {
+  try {
+
+    const response = await axios.get(
+      "https://doviz-ve-altin-fiyatlari-try.p.rapidapi.com/economy/currency/exchange-rate",
+      {
+        params: {
+          code: "USD,EUR,GBP",
+          type: "gold"
+        },
+        headers: {
+          "X-RapidAPI-Key": process.env.RAPID_API_KEY,
+          "X-RapidAPI-Host":
+            "doviz-ve-altin-fiyatlari-try.p.rapidapi.com",
+        },
+      }
+    );
+
+    const data = response.data.data;
+
+    const currencies = [
+      {
+        code: "USD",
+        buy: data.USD.buying,
+        sell: data.USD.selling
+      },
+      {
+        code: "EUR",
+        buy: data.EUR.buying,
+        sell: data.EUR.selling
+      },
+      {
+        code: "GBP",
+        buy: data.GBP.buying,
+        sell: data.GBP.selling
+      }
+    ];
+
+    res.json({
+      success: true,
+      data: currencies
+    });
+
+  } catch (error) {
+
+    console.error("CURRENCY API ERROR:", error.message);
+
+    res.status(500).json({
+      error: "Döviz fiyatları alınamadı"
+    });
+
+  }
+});
 /* ---------------- LOGIN ---------------- */
 
 app.post("/api/login", async (req, res) => {
