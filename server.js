@@ -298,30 +298,10 @@ app.get("/api/currency", async (req, res) => {
       "https://api.exchangerate.host/latest?base=TRY&symbols=USD,EUR,GBP"
     );
 
-    const rates = response.data.rates;
+    console.log("CURRENCY RESPONSE:");
+    console.log(response.data);
 
-    const currencies = [
-      {
-        code: "USD",
-        buy: (1 / rates.USD - 0.02).toFixed(4),
-        sell: (1 / rates.USD + 0.02).toFixed(4)
-      },
-      {
-        code: "EUR",
-        buy: (1 / rates.EUR - 0.02).toFixed(4),
-        sell: (1 / rates.EUR + 0.02).toFixed(4)
-      },
-      {
-        code: "GBP",
-        buy: (1 / rates.GBP - 0.02).toFixed(4),
-        sell: (1 / rates.GBP + 0.02).toFixed(4)
-      }
-    ];
-
-    res.json({
-      success: true,
-      data: currencies
-    });
+    res.json(response.data);
 
   } catch (error) {
 
