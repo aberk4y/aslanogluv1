@@ -299,34 +299,33 @@ app.get("/api/currency", async (req, res) => {
       {
         params: {
           access_key: process.env.EXCHANGE_API_KEY,
-          symbols: "USD,EUR,GBP"
+          source: "TRY",
+          currencies: "USD,EUR,GBP"
         }
       }
     );
 
-    console.log("CURRENCY RESPONSE:", response.data);
-
     const quotes = response.data.quotes;
 
-    const usdTry = quotes.USDTRY;
-    const eurTry = quotes.USDEUR * usdTry;
-    const gbpTry = quotes.USDGBP * usdTry;
+    const usd = 1 / quotes.TRYUSD;
+    const eur = 1 / quotes.TRYEUR;
+    const gbp = 1 / quotes.TRYGBP;
 
     const currencies = [
       {
         code: "USD",
-        buy: (usdTry - 0.05).toFixed(4),
-        sell: (usdTry + 0.05).toFixed(4)
+        buy: (usd - 0.02).toFixed(4),
+        sell: (usd + 0.02).toFixed(4)
       },
       {
         code: "EUR",
-        buy: (eurTry - 0.05).toFixed(4),
-        sell: (eurTry + 0.05).toFixed(4)
+        buy: (eur - 0.02).toFixed(4),
+        sell: (eur + 0.02).toFixed(4)
       },
       {
         code: "GBP",
-        buy: (gbpTry - 0.05).toFixed(4),
-        sell: (gbpTry + 0.05).toFixed(4)
+        buy: (gbp - 0.02).toFixed(4),
+        sell: (gbp + 0.02).toFixed(4)
       }
     ];
 
