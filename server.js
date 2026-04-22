@@ -23,22 +23,22 @@ const GOLD_API_URL =
   "https://harem-altin-live-gold-price-data.p.rapidapi.com/harem_altin/prices/23b4c2fb31a242d1eebc0df9b9b65e5e";
 
 const allowedProducts = [
-  "Has AltÄ±n",
+  "Has Altın",
   "GRAM ALTIN",
-  "ESKÄ° Ã‡EYREK",
-  "ESKÄ° TAM",
-  "ESKÄ° YARIM",
-  "ESKÄ° ATA",
-  "ESKÄ° ATA5",
-  "ESKÄ° GREMSE",
+  "ESKİ ÇEYREK",
+  "ESKİ TAM",
+  "ESKİ YARIM",
+  "ESKİ ATA",
+  "ESKİ ATA5",
+  "ESKİ GREMSE",
   "14 AYAR",
   "22 AYAR",
-  "YENÄ° Ã‡EYREK",
-  "YENÄ° YARIM",
-  "YENÄ° TAM",
-  "YENÄ° ATA",
-  "YENÄ° ATA5",
-  "YENÄ° GREMSE",
+  "YENİ ÇEYREK",
+  "YENİ YARIM",
+  "YENİ TAM",
+  "YENİ ATA",
+  "YENİ ATA5",
+  "YENİ GREMSE",
 ];
 
 let priceCache = null;
@@ -136,8 +136,8 @@ async function buildGoldPricePayload(apiProducts) {
   const productMargins = await ProductMargin.find();
 
   const filteredProducts = apiProducts.filter((item) =>
-    allowedProducts.includes(item.key)
-  );
+  allowedProducts.includes(item.key)
+);
 
   return filteredProducts.map((item) => {
     const buyPrice = parsePrice(item.buy);
