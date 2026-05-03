@@ -39,6 +39,7 @@ const allowedProducts = [
   "YENİ ATA",
   "YENİ ATA5",
   "YENİ GREMSE",
+  "GÜMÜŞ TL",
 ];
 
 let priceCache = null;
