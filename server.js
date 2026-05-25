@@ -421,6 +421,17 @@ app.post("/api/login", async (req, res) => {
   res.json({ token });
 });
 
+app.post("/api/change-password", authMiddleware, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const admin = await Admin.findOne();
+  const isMatch = await bcrypt.compare(currentPassword, admin.password);
+  if (!isMatch) return res.status(400).json({ message: "Mevcut şifre yanlış" });
+  const hashed = await bcrypt.hash(newPassword, 10);
+  admin.password = hashed;
+  await admin.save();
+  res.json({ success: true, message: "Şifre güncellendi" });
+});
+
 app.listen(PORT, () => {
   console.log(`Server calisiyor: http://localhost:${PORT}`);
 
