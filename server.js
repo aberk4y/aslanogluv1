@@ -192,19 +192,15 @@ async function refreshGoldPriceCache() {
 
 async function updateCurrencyRates() {
   try {
-    const response = await axios.get("https://api.exchangerate.host/live", {
-      params: {
-        access_key: process.env.EXCHANGE_API_KEY,
-        source: "TRY",
-        currencies: "USD,EUR,GBP",
-      },
-    });
+    const response = await axios.get(
+  "https://open.er-api.com/v6/latest/TRY"
+  );
 
-    const quotes = response.data.quotes;
+  const rates = response.data.rates;
 
-    const usd = 1 / quotes.TRYUSD;
-    const eur = 1 / quotes.TRYEUR;
-    const gbp = 1 / quotes.TRYGBP;
+  const usd = 1 / rates.USD;
+  const eur = 1 / rates.EUR;
+  const gbp = 1 / rates.GBP;
 
     currencyCache = [
       {
