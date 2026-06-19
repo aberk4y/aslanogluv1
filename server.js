@@ -14,9 +14,9 @@ const bcrypt = require("bcryptjs");
 const app = express();
 
 const PORT = process.env.PORT || 5000;
-const PRICE_CACHE_TTL_MS = Number(process.env.PRICE_CACHE_TTL_MS || 60 * 1000);
+const PRICE_CACHE_TTL_MS = Number(process.env.PRICE_CACHE_TTL_MS || 15 * 1000);
 const CURRENCY_CACHE_TTL_MS = Number(
-  process.env.CURRENCY_CACHE_TTL_MS || 8 * 60 * 60 * 1000
+  process.env.CURRENCY_CACHE_TTL_MS || 1 * 60 * 60 * 1000
 );
 
 const GOLD_API_URL =
@@ -112,11 +112,14 @@ function isCacheFresh(lastUpdate, ttlMs) {
   return Date.now() - new Date(lastUpdate).getTime() < ttlMs;
 }
 
-function getRapidApiHeaders() {
+// Altınapi Gişe Döviz Kurları Endpoint'i
+const CURRENCY_API_URL = 
+  "https://altinapi-turkish-live-gold-prices1.p.rapidapi.com/prices/category/DOVIZ";
+
+function getRapidApiHeaders(hostName) {
   return {
     "X-RapidAPI-Key": process.env.RAPID_API_KEY,
-    "X-RapidAPI-Host":
-      "harem-altin-live-gold-price-data.p.rapidapi.com",
+    "X-RapidAPI-Host": hostName,
   };
 }
 
@@ -126,7 +129,7 @@ function getErrorDetails(error) {
 
 async function fetchGoldPricesFromProvider() {
   const response = await axios.get(GOLD_API_URL, {
-    headers: getRapidApiHeaders(),
+    headers: getRapidApiHeaders("harem-altin-live-gold-price-data.p.rapidapi.com"),
   });
 
   return response.data.data || [];
@@ -192,40 +195,53 @@ async function refreshGoldPriceCache() {
 
 async function updateCurrencyRates() {
   try {
-    const response = await axios.get(
-  "https://open.er-api.com/v6/latest/TRY"
-  );
+    const response = await axios.get(CURRENCY_API_URL, {
+      headers: getRapidApiHeaders("altinapi-turkish-live-gold-prices1.p.rapidapi.com"),
+    });
 
-  const rates = response.data.rates;
+    const apiCurrencies = response.data.data || [];
 
-  const usd = 1 / rates.USD;
-  const eur = 1 / rates.EUR;
-  const gbp = 1 / rates.GBP;
+    const usdData = apiCurrencies.find((item) => item.symbol === "USDTRY");
+    const eurData = apiCurrencies.find((item) => item.symbol === "EURTRY");
+    const gbpData = apiCurrencies.find((item) => item.symbol === "GBPTRY");
+
+    if (!usdData || !eurData || !gbpData) {
+      throw new Error("Gerekli döviz sembolleri API yanıtında bulunamadı.");
+    }
+
+    const usdBuy = parsePrice(usdData.bid);
+    const usdSell = parsePrice(usdData.ask);
+
+    const eurBuy = parsePrice(eurData.bid);
+    const eurSell = parsePrice(eurData.ask);
+
+    const gbpBuy = parsePrice(gbpData.bid);
+    const gbpSell = parsePrice(gbpData.ask);
 
     currencyCache = [
       {
         code: "USD",
-        buy: (usd - 0.02).toFixed(4),
-        sell: (usd + 0.02).toFixed(4),
+        buy: (usdBuy - 0.20).toFixed(4),
+        sell: usdSell.toFixed(4),
       },
       {
         code: "EUR",
-        buy: (eur - 0.02).toFixed(4),
-        sell: (eur + 0.02).toFixed(4),
+        buy: (eurBuy - 0.20).toFixed(4),
+        sell: eurSell.toFixed(4),
       },
       {
         code: "GBP",
-        buy: (gbp - 0.02).toFixed(4),
-        sell: (gbp + 0.02).toFixed(4),
+        buy: (gbpBuy - 0.20).toFixed(4),
+        sell: gbpSell.toFixed(4),
       },
     ];
 
     lastCurrencyUpdate = new Date();
-    console.log("Currency cache updated");
+    console.log("Döviz cache'i Altınapi üzerinden müşteri makaslarıyla güncellendi.");
 
     return currencyCache;
   } catch (error) {
-    console.log("Currency API ERROR:", getErrorDetails(error));
+    console.log("Döviz API Hatası (Altınapi):", getErrorDetails(error));
     return null;
   }
 }
