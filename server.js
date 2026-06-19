@@ -219,22 +219,22 @@ async function updateCurrencyRates() {
     const gbpSell = parsePrice(gbpData.ask);
 
     currencyCache = [
-      {
-        code: "USD",
-        buy: (usdBuy - 0.20).toFixed(4),
-        sell: usdSell.toFixed(4),
-      },
-      {
-        code: "EUR",
-        buy: (eurBuy - 0.20).toFixed(4),
-        sell: eurSell.toFixed(4),
-      },
-      {
-        code: "GBP",
-        buy: (gbpBuy - 0.20).toFixed(4),
-        sell: gbpSell.toFixed(4),
-      },
-    ];
+  {
+    code: "USD",
+    buy: (usdBuy - 0.20).toFixed(2).replace(".", ","),
+    sell: usdSell.toFixed(2).replace(".", ","),
+  },
+  {
+    code: "EUR",
+    buy: (eurBuy - 0.20).toFixed(2).replace(".", ","),
+    sell: eurSell.toFixed(2).replace(".", ","),
+  },
+  {
+    code: "GBP",
+    buy: (gbpBuy - 0.20).toFixed(2).replace(".", ","),
+    sell: gbpSell.toFixed(2).replace(".", ","),
+  },
+];
 
     lastCurrencyUpdate = new Date();
     console.log("Döviz cache'i Altınapi üzerinden müşteri makaslarıyla güncellendi.");
