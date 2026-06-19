@@ -222,17 +222,17 @@ async function updateCurrencyRates() {
   {
     code: "USD",
     buy: (usdBuy - 0.20).toFixed(2).replace(".", ","),
-    sell: usdSell.toFixed(2).replace(".", ","),
+    sell: (usdBuy - 0.20).toFixed(2).replace(".", ","), // 👈 Flutter'ın okuduğu 'sell' yerine dükkanın gerçek ALIŞ fiyatını basıyoruz
   },
   {
     code: "EUR",
     buy: (eurBuy - 0.20).toFixed(2).replace(".", ","),
-    sell: eurSell.toFixed(2).replace(".", ","),
+    sell: (eurBuy - 0.20).toFixed(2).replace(".", ","), // 👈 Euro alışını satış gibi gösteriyoruz
   },
   {
     code: "GBP",
     buy: (gbpBuy - 0.20).toFixed(2).replace(".", ","),
-    sell: gbpSell.toFixed(2).replace(".", ","),
+    sell: (gbpBuy - 0.20).toFixed(2).replace(".", ","), // 👈 Sterlin alışını satış gibi gösteriyoruz
   },
 ];
 
