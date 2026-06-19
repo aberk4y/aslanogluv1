@@ -209,14 +209,14 @@ async function updateCurrencyRates() {
       throw new Error("Gerekli döviz sembolleri API yanıtında bulunamadı.");
     }
 
-    const usdBuy = parsePrice(usdData.bid);
-    const usdSell = parsePrice(usdData.ask);
+    const usdBuy = parseFloat(usdData.bid);
+    const usdSell = parseFloat(usdData.ask);
 
-    const eurBuy = parsePrice(eurData.bid);
-    const eurSell = parsePrice(eurData.ask);
+    const eurBuy = parseFloat(eurData.bid);
+    const eurSell = parseFloat(eurData.ask);
 
-    const gbpBuy = parsePrice(gbpData.bid);
-    const gbpSell = parsePrice(gbpData.ask);
+    const gbpBuy = parseFloat(gbpData.bid);
+    const gbpSell = parseFloat(gbpData.ask);
 
     currencyCache = [
   {
